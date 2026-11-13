@@ -1,6 +1,6 @@
 """ETL Agent UI (Streamlit).  Run from the project folder:
 
-    pip install -r requirements-ui.txt
+    pip install -r requirements.txt
     streamlit run app.py
 
 The UI is a THIN layer: every button calls the same library functions the
@@ -30,6 +30,7 @@ for base in (ROOT / "src", ROOT):              # find the etl_agent package
 from etl_agent.automation import (build_target, load_dataset,  # noqa: E402
                                   run_checks, stop_if_sensitive)
 from etl_agent.etl_checks import checks_passed  # noqa: E402
+from etl_agent.lineage_ui import render as render_lineage_tab  # noqa: E402
 from etl_agent.mapping import TRANSFORMATIONS, load_mapping  # noqa: E402
 from etl_agent.orchestrator import resolve_db_url  # noqa: E402
 from etl_agent.sqlgen import (DIALECTS, create_table_sql,  # noqa: E402
@@ -146,6 +147,9 @@ with st.sidebar:
 mapping_file = resolve_file(mapping_up, st.session_state.get("mapping_path"))
 if not mapping_file:
     st.info("Upload a mapping file in the sidebar, or press 'Load sample data'.")
+    # SQL lineage needs no mapping, so offer it before the script stops.
+    with st.tabs(["SQL lineage"])[0]:
+        render_lineage_tab()
     st.stop()
 try:
     mapping = load_mapping(mapping_file,
@@ -154,11 +158,14 @@ try:
 except (ValueError, OSError) as exc:
     st.error("The mapping has problems. Fix them and reload.")
     st.code(str(exc))
+    # SQL lineage needs no mapping, so offer it before the script stops.
+    with st.tabs(["SQL lineage"])[0]:
+        render_lineage_tab()
     st.stop()
 
 dialect = get_dialect(st.session_state.dialect)
-tab_map, tab_sql, tab_build, tab_check = st.tabs(
-    ["Mapping", "SQL generator", "Build target", "ETL checks"])
+tab_map, tab_sql, tab_build, tab_check, tab_lineage = st.tabs(
+    ["Mapping", "SQL generator", "Build target", "ETL checks", "SQL lineage"])
 
 # ---- tab 1: the mapping -----------------------------------------------------
 with tab_map:
@@ -278,3 +285,7 @@ with tab_check:
                            file_name="etl_checks.csv", key="results_download")
         st.download_button("Download HTML report", outcome["html"],
                            file_name="etl_checks.html", key="report_download")
+
+# ---- tab 5: SQL lineage -----------------------------------------------------
+with tab_lineage:
+    render_lineage_tab()

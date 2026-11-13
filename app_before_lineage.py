@@ -1,6 +1,6 @@
 """ETL Agent UI (Streamlit).  Run from the project folder:
 
-    pip install -r requirements.txt
+    pip install -r requirements-ui.txt
     streamlit run app.py
 
 The UI is a THIN layer: every button calls the same library functions the
